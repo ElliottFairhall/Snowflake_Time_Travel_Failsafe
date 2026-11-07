@@ -56,17 +56,17 @@ You can query data as it existed at a specific point in the past using the `AT` 
 ```sql
 -- Query data at a specific timestamp
 SELECT *
-FROM analytics.marts.dim_customers
+FROM tt_analytics.marts.dim_customers
 AT (TIMESTAMP => '2026-03-24 14:00:00'::TIMESTAMP_NTZ);
 
 -- Query data as it was 30 minutes ago
 SELECT *
-FROM analytics.marts.dim_customers
+FROM tt_analytics.marts.dim_customers
 AT (OFFSET => -1800);  -- offset in seconds
 
 -- Query data just before a specific query was executed
 SELECT *
-FROM analytics.marts.dim_customers
+FROM tt_analytics.marts.dim_customers
 BEFORE (STATEMENT => '01b2c3d4-0000-0000-0000-000000000001');
 ```
 
@@ -78,8 +78,8 @@ SELECT
     current_data.customer_id,
     current_data.segment AS current_segment,
     historical_data.segment AS previous_segment
-FROM analytics.marts.dim_customers AS current_data
-JOIN analytics.marts.dim_customers
+FROM tt_analytics.marts.dim_customers AS current_data
+JOIN tt_analytics.marts.dim_customers
     AT (OFFSET => -3600) AS historical_data
     ON current_data.customer_id = historical_data.customer_id
 WHERE current_data.segment != historical_data.segment;
@@ -92,13 +92,13 @@ existed at a previous point in time.
 
 ```sql
 -- Clone a table as it was yesterday
-CREATE TABLE analytics.staging.customers_backup
-CLONE analytics.marts.dim_customers
+CREATE TABLE tt_analytics.staging.customers_backup
+CLONE tt_analytics.marts.dim_customers
 AT (TIMESTAMP => '2026-03-24 00:00:00'::TIMESTAMP_NTZ);
 
 -- Clone an entire schema as it was 2 hours ago
 CREATE SCHEMA analytics.marts_backup
-CLONE analytics.marts
+CLONE tt_analytics.marts
 AT (OFFSET => -7200);
 
 -- Clone a database at a specific point
@@ -117,26 +117,26 @@ still within the Time Travel retention period.
 
 ```sql
 -- Accidentally drop a table
-DROP TABLE analytics.marts.dim_customers;
+DROP TABLE tt_analytics.marts.dim_customers;
 
 -- Restore it
-UNDROP TABLE analytics.marts.dim_customers;
+UNDROP TABLE tt_analytics.marts.dim_customers;
 
 -- Restore a dropped schema
-UNDROP SCHEMA analytics.marts;
+UNDROP SCHEMA tt_analytics.marts;
 
 -- Restore a dropped database
-UNDROP DATABASE analytics;
+UNDROP DATABASE tt_analytics;
 ```
 
 If you have already created a new object with the same name, you can rename it first and then restore the original:
 
 ```sql
 -- Rename the replacement table
-ALTER TABLE analytics.marts.dim_customers RENAME TO analytics.marts.dim_customers_v2;
+ALTER TABLE tt_analytics.marts.dim_customers RENAME TO tt_analytics.marts.dim_customers_v2;
 
 -- Restore the original
-UNDROP TABLE analytics.marts.dim_customers;
+UNDROP TABLE tt_analytics.marts.dim_customers;
 ```
 
 ### 🛡️ Fail-safe
@@ -160,26 +160,26 @@ You can configure the Time Travel retention period at the account, database, sch
 
 ```sql
 -- Set retention at the table level
-ALTER TABLE analytics.marts.dim_customers
+ALTER TABLE tt_analytics.marts.dim_customers
 SET DATA_RETENTION_TIME_IN_DAYS = 30;
 
 -- Set retention at the schema level
-ALTER SCHEMA analytics.marts
+ALTER SCHEMA tt_analytics.marts
 SET DATA_RETENTION_TIME_IN_DAYS = 14;
 
 -- Set retention at the database level
-ALTER DATABASE analytics
+ALTER DATABASE tt_analytics
 SET DATA_RETENTION_TIME_IN_DAYS = 7;
 
 -- Check current retention setting
-SHOW TABLES LIKE 'DIM_CUSTOMERS' IN SCHEMA analytics.marts;
+SHOW TABLES LIKE 'DIM_CUSTOMERS' IN SCHEMA tt_analytics.marts;
 ```
 
 To reduce storage costs for non-critical data, consider using **transient** tables, which have a maximum retention of 1
 day and no Fail-safe:
 
 ```sql
-CREATE TRANSIENT TABLE analytics.staging.temp_load (
+CREATE TRANSIENT TABLE tt_analytics.staging.temp_load (
     id INTEGER,
     payload VARIANT,
     loaded_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
